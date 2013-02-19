@@ -28,15 +28,17 @@ public abstract class ModuleAdapter<T> {
   public final boolean overrides;
   public final Class<?>[] includes;
   public final boolean complete;
+  public final boolean necessary;
   protected T module;
 
   protected ModuleAdapter(String[] entryPoints, Class<?>[] staticInjections, boolean overrides,
-      Class<?>[] includes, boolean complete) {
+      Class<?>[] includes, boolean complete, boolean necessary) {
     this.entryPoints = entryPoints;
     this.staticInjections = staticInjections;
     this.overrides = overrides;
     this.includes = includes;
     this.complete = complete;
+    this.necessary = necessary;
   }
 
   /**
@@ -54,6 +56,4 @@ public abstract class ModuleAdapter<T> {
   public T getModule() {
     return module;
   }
-
-
 }

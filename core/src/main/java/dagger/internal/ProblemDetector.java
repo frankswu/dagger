@@ -27,9 +27,30 @@ import java.util.List;
 public final class ProblemDetector {
   public void detectProblems(Collection<Binding<?>> bindings) {
     detectCircularDependencies(bindings, new ArrayList<Binding<?>>());
+    detectUnusedBinding(bindings);
   }
 
-  public void detectCircularDependencies(Collection<Binding<?>> bindings, List<Binding<?>> path) {
+  private static void detectUnusedBinding(Collection<Binding<?>> bindings) {
+    ArrayList<Binding> unusedBindings = new ArrayList<Binding>();
+    for (Binding<?> binding : bindings) {
+      if (binding.necessary() && !binding.dependedOn()) {
+        unusedBindings.add(binding);
+      }
+    }
+    if (unusedBindings.size() > 0) {
+      StringBuilder builder = new StringBuilder();
+      builder.append(
+          "You have these unused @Provider methods! "
+              + "Set neccesary=false in your module or @Provides method to disable this check.\n");
+      for (Binding<?> binding : unusedBindings) {
+        builder.append(binding + "\n");
+      }
+      throw new IllegalStateException(builder.toString());
+    }
+  }
+
+  private static void detectCircularDependencies(Collection<Binding<?>> bindings,
+      List<Binding<?>> path) {
     for (Binding<?> binding : bindings) {
       if (binding.isCycleFree()) {
         continue;

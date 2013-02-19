@@ -120,12 +120,13 @@ public final class FullGraphProcessor extends AbstractProcessor {
       for (TypeElement module : allModules.values()) {
         Map<String, Object> annotation = CodeGen.getAnnotation(Module.class, module);
         boolean overrides = (Boolean) annotation.get("overrides");
+        boolean moduleNecessary = (Boolean) annotation.get("necessary");
         Map<String, Binding<?>> addTo = overrides ? overrideBindings : baseBindings;
 
         // Gather the entry points from the annotation.
         for (Object entryPoint : (Object[]) annotation.get("entryPoints")) {
           linker.requestBinding(GeneratorKeys.rawMembersKey((TypeMirror) entryPoint),
-              module.getQualifiedName().toString(), false);
+              module.getQualifiedName().toString(), false, false);
         }
 
         // Gather the static injections.
@@ -137,9 +138,11 @@ public final class FullGraphProcessor extends AbstractProcessor {
           if (provides == null) {
             continue;
           }
+          boolean necessary = provides.necessary();
           ExecutableElement providerMethod = (ExecutableElement) enclosed;
           String key = GeneratorKeys.get(providerMethod);
-          ProviderMethodBinding binding = new ProviderMethodBinding(key, providerMethod);
+          ProviderMethodBinding binding =
+              new ProviderMethodBinding(key, providerMethod, moduleNecessary && necessary);
           switch (provides.type()) {
             case UNIQUE:
               ProviderMethodBinding clobbered = (ProviderMethodBinding) addTo.put(key, binding);
@@ -209,10 +212,12 @@ public final class FullGraphProcessor extends AbstractProcessor {
     private final ExecutableElement method;
     private final Binding<?>[] parameters;
 
-    protected ProviderMethodBinding(String provideKey, ExecutableElement method) {
+    protected ProviderMethodBinding(String provideKey, ExecutableElement method,
+        boolean necessary) {
       super(provideKey, null, method.getAnnotation(Singleton.class) != null, method.toString());
       this.method = method;
       this.parameters = new Binding[method.getParameters().size()];
+      setNecessary(necessary);
     }
 
     @Override public void attach(Linker linker) {
